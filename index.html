@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fixed Width Parser</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        background: #f8fafc;
+        color: #1e293b;
+        min-height: 100vh;
+      }
+
+      .app {
+        display: grid;
+        grid-template-columns: 700px 1fr; /* Augmenté de 400px à 500px */
+        min-height: 100vh;
+        gap: 0;
+      }
+
+      .sidebar {
+        background: white;
+        border-right: 1px solid #e2e8f0;
+        overflow-y: auto;
+        max-height: 100vh;
+      }
+
+      .main-content {
+        background: #f8fafc;
+        overflow-y: auto;
+        max-height: 100vh;
+      }
+
+      .section {
+        padding: 24px;
+      }
+
+      .section-header {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #e2e8f0;
+      }
+
+      .section-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #0f172a;
+      }
+
+      .btn {
+        padding: 8px 16px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        background: white;
+        color: #374151;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn:hover {
+        background: #f9fafb;
+        border-color: #9ca3af;
+      }
+
+      .btn-primary {
+        background: #3b82f6;
+        color: white;
+        border-color: #3b82f6;
+      }
+
+      .btn-primary:hover {
+        background: #2563eb;
+      }
+
+      .btn-sm {
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+
+      /* Types de lignes */
+      .line-type {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        overflow: hidden;
+      }
+
+      .line-type-header {
+        padding: 16px;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .line-type.parent-type .line-type-header {
+        background: #ecfdf5;
+        border-bottom-color: #d1fae5;
+      }
+
+      .line-type-name {
+        font-weight: 600;
+        font-size: 14px;
+      }
+
+      .line-type-content {
+        padding: 16px;
+      }
+
+      .form-group {
+        margin-bottom: 16px;
+      }
+
+      .form-label {
+        display: block;
+        font-size: 12px;
+        font-weight: 500;
+        color: #6b7280;
+        margin-bottom: 4px;
+      }
+
+      .form-input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+
+      .form-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+
+      /* Champs */
+      .field-item {
+        display: grid;
+        grid-template-columns: 1fr 90px 90px 32px; /* Légèrement plus large pour Position/Longueur */
+        gap: 8px;
+        align-items: end;
+        padding: 12px;
+        background: #f8fafc;
+        border-radius: 6px;
+        margin-bottom: 8px;
+      }
+
+      .field-item input {
+        padding: 6px 8px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        font-size: 13px;
+      }
+
+      .remove-btn {
+        width: 24px;
+        height: 24px;
+        border: none;
+        background: #ef4444;
+        color: white;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* Zone de données */
+      .data-section {
+        background: white;
+        border-radius: 8px;
+        margin: 24px;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+      }
+
+      .data-header {
+        padding: 20px;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 200px;
+        padding: 16px;
+        border: none;
+        font-family: "Courier New", monospace;
+        font-size: 14px;
+        resize: vertical;
+      }
+
+      /* Résultat */
+      .result-container {
+        background: white;
+        border-radius: 8px;
+        margin: 24px;
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+      }
+
+      .result-header {
+        padding: 20px;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .result-content {
+        max-height: 400px;
+        overflow-y: auto;
+      }
+
+      .result-json {
+        padding: 20px;
+        background: #1e293b;
+        color: #e2e8f0;
+        font-family: "Courier New", monospace;
+        font-size: 13px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+
+      /* Messages */
+      .messages {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+      }
+
+      .message {
+        padding: 12px 16px;
+        border-radius: 6px;
+        margin-bottom: 8px;
+        font-size: 14px;
+        min-width: 200px;
+      }
+
+      .message.success {
+        background: #d1fae5;
+        color: #065f46;
+        border: 1px solid #a7f3d0;
+      }
+
+      .message.error {
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+      }
+
+      /* Debug */
+      .debug-section {
+        background: #1e293b;
+        color: #e2e8f0;
+        padding: 20px;
+        margin: 24px;
+        border-radius: 8px;
+        font-family: "Courier New", monospace;
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      .parent-badge {
+        background: #10b981;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 500;
+      }
+
+      /* Actions flottantes */
+      .floating-actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      /* Responsive */
+      @media (max-width: 1024px) {
+        .app {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto 1fr;
+        }
+
+        .sidebar {
+          max-height: 50vh;
+          border-right: none;
+          border-bottom: 1px solid #e2e8f0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <!-- SIDEBAR - Configuration -->
+      <div class="sidebar">
+        <div class="section">
+          <div class="section-header">
+            <h2 class="section-title">Configuration</h2>
+            <div class="floating-actions">
+              <button class="btn btn-sm" onclick="exportSchema()">
+                Export
+              </button>
+              <button class="btn btn-sm" onclick="importSchema()">
+                Import
+              </button>
+            </div>
+          </div>
+
+          <div id="schema"></div>
+
+          <button
+            class="btn btn-primary"
+            onclick="addLineType()"
+            style="width: 100%; margin-top: 16px"
+          >
+            + Ajouter un type
+          </button>
+        </div>
+      </div>
+
+      <!-- MAIN CONTENT -->
+      <div class="main-content">
+        <!-- Zone de saisie -->
+        <div class="data-section">
+          <div class="data-header">
+            <h3 class="section-title">Données à parser</h3>
+            <button class="btn btn-primary" onclick="parseData()">
+              Parser
+            </button>
+          </div>
+          <textarea
+            id="inputData"
+            placeholder="Collez vos données ici..."
+            oninput="parseData()"
+          ></textarea>
+        </div>
+
+        <!-- Résultat -->
+        <div class="result-container">
+          <div class="result-header">
+            <h3 class="section-title">Résultat JSON</h3>
+            <button class="btn btn-sm" onclick="copyResult()">Copier</button>
+          </div>
+          <div class="result-content">
+            <div class="result-json" id="result"></div>
+          </div>
+        </div>
+
+        <!-- Debug -->
+        <div class="debug-section" id="debugOutput"></div>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div class="messages" id="messages"></div>
+
+    <script>
+      let schema = [];
+      let lastResult = "";
+
+      function addLineType() {
+        const lineType = {
+          name: `Type_${schema.length + 1}`,
+          identifierValues: [],
+          parentValues: [],
+          fields: [{ name: "type", startPos: 1, length: 3 }],
+        };
+        schema.push(lineType);
+        renderSchema();
+      }
+
+      function removeLineType(index) {
+        if (confirm("Supprimer ce type de ligne ?")) {
+          schema.splice(index, 1);
+          renderSchema();
+        }
+      }
+
+      function addField(lineTypeIndex) {
+        const field = { name: "", startPos: 1, length: 1 };
+        schema[lineTypeIndex].fields.push(field);
+        renderSchema();
+      }
+
+      function removeField(lineTypeIndex, fieldIndex) {
+        schema[lineTypeIndex].fields.splice(fieldIndex, 1);
+        renderSchema();
+      }
+
+      function renderSchema() {
+        const container = document.getElementById("schema");
+        container.innerHTML = "";
+
+        schema.forEach((lineType, lineTypeIndex) => {
+          const isParent = lineType.parentValues.length > 0;
+
+          const div = document.createElement("div");
+          div.className = `line-type ${isParent ? "parent-type" : ""}`;
+
+          div.innerHTML = `
+                    <div class="line-type-header">
+                        <div>
+                            <span class="line-type-name">${lineType.name}</span>
+                            ${
+                              isParent
+                                ? '<span class="parent-badge">Parent</span>'
+                                : ""
+                            }
+                        </div>
+                        <button class="remove-btn" onclick="removeLineType(${lineTypeIndex})">×</button>
+                    </div>
+                    
+                    <div class="line-type-content">
+                        <div class="form-group">
+                            <label class="form-label">Nom du type</label>
+                            <input type="text" class="form-input" value="${
+                              lineType.name
+                            }" 
+                                   onchange="updateLineTypeName(${lineTypeIndex}, this.value)">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Valeurs d'identification (séparées par des virgules)</label>
+                            <input type="text" class="form-input" value="${lineType.identifierValues.join(
+                              ", "
+                            )}"
+                                   onchange="updateIdentifierValues(${lineTypeIndex}, this.value)">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Valeurs parent (séparées par des virgules)</label>
+                            <input type="text" class="form-input" value="${lineType.parentValues.join(
+                              ", "
+                            )}"
+                                   onchange="updateParentValues(${lineTypeIndex}, this.value)">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Champs</label>
+                            <div class="fields-list">
+                                ${lineType.fields
+                                  .map(
+                                    (field, fieldIndex) => `
+                                    <div class="field-item">
+                                        <input type="text" placeholder="Nom" value="${field.name}"
+                                               onchange="updateField(${lineTypeIndex}, ${fieldIndex}, 'name', this.value)">
+                                        <input type="number" placeholder="Position" value="${field.startPos}"
+                                               onchange="updateField(${lineTypeIndex}, ${fieldIndex}, 'startPos', parseInt(this.value))">
+                                        <input type="number" placeholder="Longueur" value="${field.length}"
+                                               onchange="updateField(${lineTypeIndex}, ${fieldIndex}, 'length', parseInt(this.value))">
+                                        <button class="remove-btn" onclick="removeField(${lineTypeIndex}, ${fieldIndex})">×</button>
+                                    </div>
+                                `
+                                  )
+                                  .join("")}
+                            </div>
+                            <button class="btn btn-sm" onclick="addField(${lineTypeIndex})" style="width: 100%; margin-top: 8px;">
+                                + Ajouter un champ
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+          container.appendChild(div);
+        });
+      }
+
+      function updateLineTypeName(index, value) {
+        schema[index].name = value;
+      }
+
+      function updateIdentifierValues(index, value) {
+        schema[index].identifierValues = value
+          .split(",")
+          .map((v) => v.trim())
+          .filter((v) => v);
+      }
+
+      function updateParentValues(index, value) {
+        schema[index].parentValues = value
+          .split(",")
+          .map((v) => v.trim())
+          .filter((v) => v);
+        renderSchema(); // Re-render pour mettre à jour le badge parent
+      }
+
+      function updateField(lineTypeIndex, fieldIndex, property, value) {
+        schema[lineTypeIndex].fields[fieldIndex][property] = value;
+      }
+
+      function parseLine(line, lineNumber) {
+        let debugInfo = `Ligne ${lineNumber}: "${line}"`;
+
+        for (const lineType of schema) {
+          if (lineType.fields.length === 0) continue;
+
+          const firstField = lineType.fields[0];
+          const extracted = line.substring(
+            firstField.startPos - 1,
+            firstField.startPos - 1 + firstField.length
+          );
+
+          debugInfo += ` -> Test type "${
+            lineType.name
+          }": extrait="${extracted}", attendu=[${lineType.identifierValues.join(
+            ","
+          )}]`;
+
+          if (lineType.identifierValues.includes(extracted)) {
+            const data = { raw: line };
+            const isParent = lineType.parentValues.includes(extracted);
+
+            lineType.fields.forEach((field) => {
+              const value = line
+                .substring(
+                  field.startPos - 1,
+                  field.startPos - 1 + field.length
+                )
+                .trim();
+              data[field.name] = value;
+            });
+
+            debugInfo += ` -> ✓ Match! Type: ${lineType.name}, Parent: ${isParent}`;
+            console.log(debugInfo);
+
+            return {
+              type: lineType.name,
+              data: data,
+              lineNumber: lineNumber,
+              children: [],
+              isParent: isParent,
+            };
+          }
+        }
+
+        debugInfo += ` -> Type: unknown`;
+        console.log(debugInfo);
+
+        return {
+          type: "unknown",
+          data: { raw: line },
+          lineNumber: lineNumber,
+          children: [],
+        };
+      }
+
+      function parseData() {
+        const input = document.getElementById("inputData").value;
+        if (!input.trim()) {
+          document.getElementById("result").textContent = "";
+          document.getElementById("debugOutput").textContent = "";
+          return;
+        }
+
+        const lines = input.split("\n").filter((line) => line.trim());
+        const parsed = [];
+        let parentStack = [];
+        let debugMessages = [];
+
+        lines.forEach((line, index) => {
+          const parsedLine = parseLine(line.trim(), index + 1);
+
+          let debugMsg = `Ligne ${index + 1}: "${line}" -> Type: ${
+            parsedLine.type
+          }`;
+          debugMsg += `\n-> Est parent: ${parsedLine.isParent}`;
+
+          if (parsedLine.isParent) {
+            // C'est un parent
+            parentStack = [parsedLine]; // Nouveau parent unique
+            parsed.push(parsedLine);
+            debugMsg += `\n-> Nouveau parent ajouté`;
+          } else {
+            // C'est un enfant, chercher le parent approprié
+            if (parentStack.length > 0) {
+              const parent = parentStack[parentStack.length - 1];
+              parent.children.push(parsedLine);
+              debugMsg += `\n-> Ajouté comme enfant de "${parent.type}" (ligne ${parent.lineNumber})`;
+            } else {
+              // Pas de parent disponible
+              parsed.push(parsedLine);
+              debugMsg += `\n-> Ajouté à la racine (orphelin)`;
+            }
+          }
+
+          debugMessages.push(debugMsg);
+        });
+
+        const result = JSON.stringify(parsed, null, 2);
+        lastResult = result;
+        document.getElementById("result").textContent = result;
+        document.getElementById("debugOutput").textContent =
+          debugMessages.join("\n\n");
+      }
+
+      function exportSchema() {
+        const exported = JSON.stringify(schema, null, 2);
+        navigator.clipboard.writeText(exported).then(() => {
+          showMessage("Schéma copié dans le presse-papiers !", "success");
+        });
+      }
+
+      function importSchema() {
+        const input = prompt("Collez votre schéma JSON ici:");
+        if (!input) return;
+
+        try {
+          const imported = JSON.parse(input);
+          schema.length = 0;
+
+          imported.forEach((type) => {
+            schema.push({
+              name: type.name,
+              identifierValues: type.identifierValues || [
+                ...new Set([...type.parentValues]),
+              ],
+              parentValues: type.parentValues || [],
+              fields: type.fields || [],
+            });
+          });
+
+          renderSchema();
+          showMessage("Schéma importé avec succès !", "success");
+        } catch (e) {
+          showMessage("Erreur lors de l'import: " + e.message, "error");
+        }
+      }
+
+      function copyResult() {
+        if (lastResult) {
+          navigator.clipboard.writeText(lastResult).then(() => {
+            showMessage("Résultat copié !", "success");
+          });
+        } else {
+          showMessage("Aucun résultat à copier", "error");
+        }
+      }
+
+      function showMessage(message, type) {
+        const messagesDiv = document.getElementById("messages");
+        const messageDiv = document.createElement("div");
+        messageDiv.className = `message ${type}`;
+        messageDiv.textContent = message;
+        messagesDiv.appendChild(messageDiv);
+
+        setTimeout(() => {
+          messageDiv.remove();
+        }, 5000);
+      }
+
+      // Initialisation
+      addLineType();
+      renderSchema();
+    </script>
+  </body>
+</html>
