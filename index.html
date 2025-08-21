@@ -296,6 +296,40 @@
         gap: 8px;
       }
 
+      .fields-header {
+        display: grid;
+        grid-template-columns: 1fr 90px 90px 32px;
+        gap: 8px;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 500;
+        color: #6b7280;
+        border-bottom: 1px solid #e2e8f0;
+        margin-bottom: 8px;
+      }
+
+      .position-display {
+        padding: 6px 8px;
+        background: #f3f4f6;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        font-size: 13px;
+        color: #6b7280;
+        text-align: center;
+        font-family: "Courier New", monospace;
+      }
+
+      .field-item {
+        display: grid;
+        grid-template-columns: 1fr 90px 90px 32px;
+        gap: 8px;
+        align-items: end;
+        padding: 12px;
+        background: #f8fafc;
+        border-radius: 6px;
+        margin-bottom: 8px;
+      }
+
       /* Responsive */
       @media (max-width: 1024px) {
         .app {
@@ -409,6 +443,7 @@
         renderSchema();
       }
 
+      // Remplace la fonction renderSchema() par celle-ci :
       function renderSchema() {
         const container = document.getElementById("schema");
         container.innerHTML = "";
@@ -419,72 +454,114 @@
           const div = document.createElement("div");
           div.className = `line-type ${isParent ? "parent-type" : ""}`;
 
+          // Calculer les positions automatiquement
+          let currentPos = 1;
+          const fieldsHtml = lineType.fields
+            .map((field, fieldIndex) => {
+              const pos = currentPos;
+              currentPos += field.length;
+
+              return `
+                <div class="field-item">
+                    <input type="text" placeholder="Nom" value="${field.name}"
+                           onchange="updateField(${lineTypeIndex}, ${fieldIndex}, 'name', this.value)">
+                    <div class="position-display">${pos}</div>
+                    <input type="number" placeholder="Longueur" value="${field.length}" min="1"
+                           onchange="updateFieldLength(${lineTypeIndex}, ${fieldIndex}, parseInt(this.value))">
+                    <button class="remove-btn" onclick="removeField(${lineTypeIndex}, ${fieldIndex})">×</button>
+                </div>
+            `;
+            })
+            .join("");
+
           div.innerHTML = `
-                    <div class="line-type-header">
-                        <div>
-                            <span class="line-type-name">${lineType.name}</span>
-                            ${
-                              isParent
-                                ? '<span class="parent-badge">Parent</span>'
-                                : ""
-                            }
-                        </div>
-                        <button class="remove-btn" onclick="removeLineType(${lineTypeIndex})">×</button>
+            <div class="line-type-header">
+                <div>
+                    <span class="line-type-name">${lineType.name}</span>
+                    ${
+                      isParent ? '<span class="parent-badge">Parent</span>' : ""
+                    }
+                </div>
+                <button class="remove-btn" onclick="removeLineType(${lineTypeIndex})">×</button>
+            </div>
+
+            <div class="line-type-content">
+                <div class="form-group">
+                    <label class="form-label">Nom du type</label>
+                    <input type="text" class="form-input" value="${
+                      lineType.name
+                    }" 
+                           onchange="updateLineTypeName(${lineTypeIndex}, this.value)">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Valeurs d'identification (séparées par des virgules)</label>
+                    <input type="text" class="form-input" value="${lineType.identifierValues.join(
+                      ", "
+                    )}"
+                           onchange="updateIdentifierValues(${lineTypeIndex}, this.value)">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Valeurs parent (séparées par des virgules)</label>
+                    <input type="text" class="form-input" value="${lineType.parentValues.join(
+                      ", "
+                    )}"
+                           onchange="updateParentValues(${lineTypeIndex}, this.value)">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Champs (positions calculées automatiquement)</label>
+                    <div class="fields-header">
+                        <span>Nom</span>
+                        <span>Position</span>
+                        <span>Longueur</span>
+                        <span></span>
                     </div>
-                    
-                    <div class="line-type-content">
-                        <div class="form-group">
-                            <label class="form-label">Nom du type</label>
-                            <input type="text" class="form-input" value="${
-                              lineType.name
-                            }" 
-                                   onchange="updateLineTypeName(${lineTypeIndex}, this.value)">
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Valeurs d'identification (séparées par des virgules)</label>
-                            <input type="text" class="form-input" value="${lineType.identifierValues.join(
-                              ", "
-                            )}"
-                                   onchange="updateIdentifierValues(${lineTypeIndex}, this.value)">
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Valeurs parent (séparées par des virgules)</label>
-                            <input type="text" class="form-input" value="${lineType.parentValues.join(
-                              ", "
-                            )}"
-                                   onchange="updateParentValues(${lineTypeIndex}, this.value)">
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Champs</label>
-                            <div class="fields-list">
-                                ${lineType.fields
-                                  .map(
-                                    (field, fieldIndex) => `
-                                    <div class="field-item">
-                                        <input type="text" placeholder="Nom" value="${field.name}"
-                                               onchange="updateField(${lineTypeIndex}, ${fieldIndex}, 'name', this.value)">
-                                        <input type="number" placeholder="Position" value="${field.startPos}"
-                                               onchange="updateField(${lineTypeIndex}, ${fieldIndex}, 'startPos', parseInt(this.value))">
-                                        <input type="number" placeholder="Longueur" value="${field.length}"
-                                               onchange="updateField(${lineTypeIndex}, ${fieldIndex}, 'length', parseInt(this.value))">
-                                        <button class="remove-btn" onclick="removeField(${lineTypeIndex}, ${fieldIndex})">×</button>
-                                    </div>
-                                `
-                                  )
-                                  .join("")}
-                            </div>
-                            <button class="btn btn-sm" onclick="addField(${lineTypeIndex})" style="width: 100%; margin-top: 8px;">
-                                + Ajouter un champ
-                            </button>
-                        </div>
+                    <div class="fields-list">
+                        ${fieldsHtml}
                     </div>
-                `;
+                    <button class="btn btn-sm" onclick="addField(${lineTypeIndex})" style="width: 100%; margin-top: 8px;">
+                        + Ajouter un champ
+                    </button>
+                </div>
+            </div>
+        `;
 
           container.appendChild(div);
         });
+      }
+
+      // Ajoute cette nouvelle fonction :
+      function updateFieldLength(lineTypeIndex, fieldIndex, length) {
+        if (length < 1) length = 1;
+        schema[lineTypeIndex].fields[fieldIndex].length = length;
+        updatePositions(lineTypeIndex);
+        renderSchema();
+      }
+
+      // Ajoute cette fonction pour recalculer les positions :
+      function updatePositions(lineTypeIndex) {
+        let currentPos = 1;
+        schema[lineTypeIndex].fields.forEach((field) => {
+          field.startPos = currentPos;
+          currentPos += field.length;
+        });
+      }
+
+      // Modifie la fonction addField pour recalculer les positions :
+      function addField(lineTypeIndex) {
+        const field = { name: "", startPos: 1, length: 1 };
+        schema[lineTypeIndex].fields.push(field);
+        updatePositions(lineTypeIndex);
+        renderSchema();
+      }
+
+      // Modifie la fonction removeField pour recalculer les positions :
+      function removeField(lineTypeIndex, fieldIndex) {
+        schema[lineTypeIndex].fields.splice(fieldIndex, 1);
+        updatePositions(lineTypeIndex);
+        renderSchema();
       }
 
       function updateLineTypeName(index, value) {
@@ -576,37 +653,115 @@
 
         const lines = input.split("\n").filter((line) => line.trim());
         const parsed = [];
-        let parentStack = [];
+        const parentStack = []; // Stack pour suivre les parents potentiels
         let debugMessages = [];
 
         lines.forEach((line, index) => {
-          const parsedLine = parseLine(line.trim(), index + 1);
+          const trimmedLine = line.trim();
+          const lineNumber = index + 1;
+          let debugMsg = `Ligne ${lineNumber}: "${trimmedLine.substring(
+            0,
+            20
+          )}..."`;
 
-          let debugMsg = `Ligne ${index + 1}: "${line}" -> Type: ${
-            parsedLine.type
-          }`;
-          debugMsg += `\n-> Est parent: ${parsedLine.isParent}`;
+          // Trouver le type correspondant
+          const matchingType = schema.find((type) =>
+            type.identifierValues.some((id) => trimmedLine.startsWith(id))
+          );
 
-          if (parsedLine.isParent) {
-            // C'est un parent
-            parentStack = [parsedLine]; // Nouveau parent unique
+          if (!matchingType) {
+            debugMsg += "\n-> Type non reconnu";
+            debugMessages.push(debugMsg);
+            return;
+          }
+
+          debugMsg += `\n-> Identifié comme "${matchingType.name}"`;
+
+          // Parser les champs
+          const data = { raw: trimmedLine };
+          matchingType.fields.forEach((field) => {
+            const value =
+              trimmedLine.substring(
+                field.startPos - 1,
+                field.startPos - 1 + field.length
+              ) || "";
+            data[field.name] = value;
+          });
+
+          const parsedLine = {
+            type: matchingType.name,
+            data: data,
+            lineNumber: lineNumber,
+            children: [],
+          };
+
+          // Logique hiérarchique
+          if (matchingType.parentValues.length === 0) {
+            // C'est un élément racine
             parsed.push(parsedLine);
-            debugMsg += `\n-> Nouveau parent ajouté`;
+            parentStack.length = 0; // Vider le stack
+            parentStack.push({
+              element: parsedLine,
+              identifiers: matchingType.identifierValues,
+            });
+            debugMsg += `\n-> Ajouté à la racine`;
           } else {
-            // C'est un enfant, chercher le parent approprié
-            if (parentStack.length > 0) {
-              const parent = parentStack[parentStack.length - 1];
-              parent.children.push(parsedLine);
-              debugMsg += `\n-> Ajouté comme enfant de "${parent.type}" (ligne ${parent.lineNumber})`;
-            } else {
-              // Pas de parent disponible
+            // Chercher un parent dans le stack
+            let parentFound = false;
+
+            // Parcourir le stack depuis la fin (parent le plus récent)
+            for (let i = parentStack.length - 1; i >= 0; i--) {
+              const potentialParent = parentStack[i];
+
+              if (
+                matchingType.parentValues.some((parentId) =>
+                  potentialParent.identifiers.includes(parentId)
+                )
+              ) {
+                // Parent trouvé !
+                potentialParent.element.children.push(parsedLine);
+
+                // Nettoyer le stack : garder seulement jusqu'au parent trouvé
+                parentStack.splice(i + 1);
+
+                // Ajouter cet élément au stack s'il peut avoir des enfants
+                parentStack.push({
+                  element: parsedLine,
+                  identifiers: matchingType.identifierValues,
+                });
+
+                parentFound = true;
+                debugMsg += `\n-> Ajouté comme enfant de "${potentialParent.element.type}"`;
+                break;
+              }
+            }
+
+            if (!parentFound) {
+              // Pas de parent trouvé, ajouter à la racine
               parsed.push(parsedLine);
-              debugMsg += `\n-> Ajouté à la racine (orphelin)`;
+              parentStack.length = 0;
+              parentStack.push({
+                element: parsedLine,
+                identifiers: matchingType.identifierValues,
+              });
+              debugMsg += `\n-> Parent non trouvé, ajouté à la racine`;
             }
           }
 
           debugMessages.push(debugMsg);
         });
+
+        // Marquer les éléments qui ont des enfants
+        function markParents(elements) {
+          elements.forEach((element) => {
+            element.isParent = element.children.length > 0;
+            if (element.children.length > 0) {
+              markParents(element.children);
+            }
+          });
+        }
+
+        markParents(parsed);
 
         const result = JSON.stringify(parsed, null, 2);
         lastResult = result;
